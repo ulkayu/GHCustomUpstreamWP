@@ -1,4 +1,7 @@
 <?php //phpcs:ignore WordPress.Files.FileName.InvalidClassFileName
+
+use Automattic\Jetpack\Status;
+
 /**
  * Components Library
  *
@@ -74,28 +77,17 @@ class Jetpack_Components {
 			? substr( $plan_slug, strlen( 'jetpack_' ) )
 			: $plan->path_slug;
 
-		$post_id   = get_the_ID();
-		$post_type = get_post_type();
+		$post_id = get_the_ID();
 
-		// The editor for CPTs has an `edit/` route fragment prefixed.
-		$post_type_editor_route_prefix = in_array( $post_type, array( 'page', 'post' ), true ) ? '' : 'edit';
-
-		if ( method_exists( 'Jetpack', 'build_raw_urls' ) ) {
-			$site_slug = Jetpack::build_raw_urls( home_url() );
-		} elseif ( class_exists( 'WPCOM_Masterbar' ) && method_exists( 'WPCOM_Masterbar', 'get_calypso_site_slug' ) ) {
-			$site_slug = WPCOM_Masterbar::get_calypso_site_slug( get_current_blog_id() );
-		}
+		$site_slug = ( new Status() )->get_site_suffix();
 
 		// Post-checkout: redirect back to the editor.
-		$redirect_to = ( defined( 'IS_WPCOM' ) && IS_WPCOM )
-			? '/' . implode( '/', array_filter( array( $post_type_editor_route_prefix, $post_type, $site_slug, $post_id ) ) )
-			: add_query_arg(
-				array(
-					'action' => 'edit',
-					'post'   => $post_id,
-				),
-				admin_url( 'post.php' )
-			);
+		$redirect_to = add_query_arg(
+			array(
+				'plan_upgraded' => 1,
+			),
+			get_edit_post_link( $post_id )
+		);
 
 		$upgrade_url =
 			$plan_path_slug
